@@ -57,7 +57,10 @@ class ParallelConv(nn.Module):
         for (filter_length, output_dims) in filters:
             pad = filter_length//2
             conv = nn.Sequential(
-                nn.Conv1d(input_dims, output_dims, filter_length, padding=pad),
+                nn.Conv1d(in_channels=input_dims,
+                          out_channels=output_dims,
+                          kernel_size=filter_length,
+                          padding=pad),
                 nn.ReLU()
             )
             convs.append(conv)
@@ -98,7 +101,7 @@ class ConvClassifier(nn.Module):
         self.outputs = nn.Sequential(*sequence)
 
     def forward(self, inputs):
-        one_hots, lengths = inputs
+        one_hots, _ = inputs
         embed = self.dropout(self.embeddings(one_hots))
         embed = embed.transpose(1, 2).contiguous()
         hidden = self.convs(embed)
