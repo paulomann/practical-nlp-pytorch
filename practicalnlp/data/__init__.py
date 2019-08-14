@@ -1,1 +1,1 @@
-from .dataset import Reader
+from .dataset import Reader, EmbeddingsReader

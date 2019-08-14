@@ -4,19 +4,29 @@ import torch.nn.functional as F
 
 __all__ = ["LSTMClassifier", "ConvClassifier"]
 
-class LSTMClassifier(nn.Module):
 
-    def __init__(self, embeddings, num_classes, embed_dims, rnn_units,
-                 rnn_layers=1, dropout=0.5, hidden_units=[]):
+class LSTMClassifier(nn.Module):
+    def __init__(
+        self,
+        embeddings,
+        num_classes,
+        embed_dims,
+        rnn_units,
+        rnn_layers=1,
+        dropout=0.5,
+        hidden_units=[],
+    ):
         super().__init__()
         self.embeddings = embeddings
         self.dropout = nn.Dropout(dropout)
-        self.rnn = torch.nn.LSTM(embed_dims,
-                                 rnn_units,
-                                 rnn_layers,
-                                 dropout=dropout,
-                                 bidirectional=False,
-                                 batch_first=False)
+        self.rnn = torch.nn.LSTM(
+            embed_dims,
+            rnn_units,
+            rnn_layers,
+            dropout=dropout,
+            bidirectional=False,
+            batch_first=False,
+        )
         nn.init.orthogonal_(self.rnn.weight_hh_l0)
         nn.init.orthogonal_(self.rnn.weight_ih_l0)
         sequence = []
@@ -26,11 +36,10 @@ class LSTMClassifier(nn.Module):
             sequence.append(nn.Linear(input_units, h))
             input_units = h
             output_units = h
-            
+
         sequence.append(nn.Linear(output_units, num_classes))
         self.outputs = nn.Sequential(*sequence)
-        
-        
+
     def forward(self, inputs):
         one_hots, lengths = inputs
         embed = self.dropout(self.embeddings(one_hots))
@@ -48,26 +57,27 @@ class LSTMClassifier(nn.Module):
 # ------------------------------------------------------------------
 # ------------------------------------------------------------------
 
-class ParallelConv(nn.Module):
 
+class ParallelConv(nn.Module):
     def __init__(self, input_dims, filters, dropout=0.5):
         super().__init__()
-        convs = []        
+        convs = []
         self.output_dims = sum([t[1] for t in filters])
         for (filter_length, output_dims) in filters:
-            pad = filter_length//2
+            pad = filter_length // 2
             conv = nn.Sequential(
-                nn.Conv1d(in_channels=input_dims,
-                          out_channels=output_dims,
-                          kernel_size=filter_length,
-                          padding=pad),
-                nn.ReLU()
+                nn.Conv1d(
+                    in_channels=input_dims,
+                    out_channels=output_dims,
+                    kernel_size=filter_length,
+                    padding=pad,
+                ),
+                nn.ReLU(),
             )
             convs.append(conv)
         # Add the module so its managed correctly
         self.convs = nn.ModuleList(convs)
         self.conv_drop = nn.Dropout(dropout)
-
 
     def forward(self, input_bct):
         mots = []
@@ -79,16 +89,24 @@ class ParallelConv(nn.Module):
         mots = torch.cat(mots, 1)
         return self.conv_drop(mots)
 
-class ConvClassifier(nn.Module):
 
-    def __init__(self, embeddings, num_classes, embed_dims,
-                 filters=[(2, 100), (3, 100), (4, 100)],
-                 dropout=0.5, hidden_units=[]):
+class ConvClassifier(nn.Module):
+    def __init__(
+        self,
+        embeddings,
+        num_classes,
+        embed_dims,
+        filters=[(2, 100), (3, 100), (4, 100)],
+        dropout=0.5,
+        hidden_units=[],
+        remove_padding=False
+    ):
         super().__init__()
         self.embeddings = embeddings
         self.dropout = nn.Dropout(dropout)
         self.convs = ParallelConv(embed_dims, filters, dropout)
-        
+        self.remove_padding = remove_padding
+
         input_units = self.convs.output_dims
         output_units = self.convs.output_dims
         sequence = []
@@ -96,7 +114,7 @@ class ConvClassifier(nn.Module):
             sequence.append(self.dropout(nn.Linear(input_units, h)))
             input_units = h
             output_units = h
-            
+
         sequence.append(nn.Linear(output_units, num_classes))
         self.outputs = nn.Sequential(*sequence)
 
