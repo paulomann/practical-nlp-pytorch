@@ -1,1 +1,1 @@
-from .models import LSTMClassifier, ConvClassifier
+from .models import LSTMClassifier, ConvClassifier, LSTMLanguageModel

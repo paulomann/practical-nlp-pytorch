@@ -9,7 +9,7 @@ import codecs
 import numpy as np
 import torch.nn as nn
 
-__all__ = ["Reader", "EmbeddingsReader"]
+__all__ = ["Reader", "EmbeddingsReader", "WordDatasetReader", "Average"]
 
 
 def whitespace_tokenizer(words: str) -> List[str]:
@@ -156,3 +156,78 @@ class EmbeddingsReader:
         embeddings.weight = nn.Parameter(torch.from_numpy(weight).float())
         return embeddings, embed_dim
 
+
+class WordDatasetReader(object):
+    """Provide a base-class to do operations to read words to tensors
+    """
+
+    def __init__(self, nctx, vectorizer=None):
+        self.nctx = nctx
+        self.num_words = {}
+        self.vectorizer = vectorizer if vectorizer else self._vectorizer
+
+    def build_vocab(self, files, min_freq=0):
+        x = Counter()
+
+        for file in files:
+            if file is None:
+                continue
+            self.num_words[file] = 0
+            with codecs.open(file, encoding="utf-8", mode="r") as f:
+                sentences = []
+                for line in f:
+                    split_sentence = line.split() + ["<EOS>"]
+                    self.num_words[file] += len(split_sentence)
+                    sentences += split_sentence
+                x.update(Counter(sentences))
+        x = dict(filter(lambda cnt: cnt[1] >= min_freq, x.items()))
+        alpha = list(x.keys())
+        alpha.sort()
+        self.vocab = {w: i + 1 for i, w in enumerate(alpha)}
+        self.vocab["[PAD]"] = 0
+
+    def _vectorizer(self, words: List[str]) -> List[int]:
+        return [self.vocab.get(w, 0) for w in words]
+
+    def load_features(self, filename):
+
+        with codecs.open(filename, encoding="utf-8", mode="r") as f:
+            sentences = []
+            for line in f:
+                sentences += line.strip().split() + ["<EOS>"]
+            return torch.tensor(self.vectorizer(sentences), dtype=torch.long)
+
+    def load(self, filename, batch_size):
+        x_tensor = self.load_features(filename)
+        rest = x_tensor.shape[0] // batch_size
+        num_steps = rest // self.nctx
+        # if num_examples is divisible by batchsz * nctx (equivalent to rest is divisible by nctx), we
+        # have a problem. reduce rest in that case.
+
+        if rest % self.nctx == 0:
+            rest = rest - 1
+        trunc = batch_size * rest
+
+        x_tensor = x_tensor.narrow(0, 0, trunc)
+        x_tensor = x_tensor.view(batch_size, -1).contiguous()
+        return x_tensor
+
+
+class Average(object):
+    def __init__(self, name, fmt=":f"):
+        self.name = name
+        self.fmt = fmt
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+    def __str__(self):
+        fmtstr = "{name} {val" + self.fmt + "} ({avg" + self.fmt + "})"
+        return fmtstr.format(**self.__dict__)

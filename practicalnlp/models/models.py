@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
-__all__ = ["LSTMClassifier", "ConvClassifier"]
+__all__ = ["LSTMClassifier", "ConvClassifier", "LSTMLanguageModel"]
 
 
 class LSTMClassifier(nn.Module):
@@ -99,13 +99,11 @@ class ConvClassifier(nn.Module):
         filters=[(2, 100), (3, 100), (4, 100)],
         dropout=0.5,
         hidden_units=[],
-        remove_padding=False
     ):
         super().__init__()
         self.embeddings = embeddings
         self.dropout = nn.Dropout(dropout)
         self.convs = ParallelConv(embed_dims, filters, dropout)
-        self.remove_padding = remove_padding
 
         input_units = self.convs.output_dims
         output_units = self.convs.output_dims
@@ -125,3 +123,46 @@ class ConvClassifier(nn.Module):
         hidden = self.convs(embed)
         linear = self.outputs(hidden)
         return F.log_softmax(linear, dim=-1)
+
+# ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# ---------------------- Language Modeling -------------------------
+# ------------------------------------------------------------------
+# ------------------------------------------------------------------
+
+class LSTMLanguageModel(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_dim, dropout=0.5, layers=2):
+        super().__init__()
+        self.layers = layers
+        self.hidden_dim = hidden_dim
+        self.embed = nn.Embedding(vocab_size, embed_dim)
+        self.rnn = torch.nn.LSTM(
+            embed_dim,
+            hidden_dim,
+            layers,
+            dropout=dropout,
+            bidirectional=False,
+            batch_first=True,
+        )
+        self.proj = nn.Linear(embed_dim, vocab_size)
+        self.proj.bias.data.zero_()
+
+        # Tie weights
+        self.proj.weight = self.embed.weight
+
+    def forward(self, x, hidden):
+        emb = self.embed(x)
+        decoded, hidden = self.rnn(emb, hidden)
+        #decoded size = torch.Size([20, 35, 512])
+        return self.proj(decoded), hidden
+
+    def init_hidden(self, batchsz):
+        weight = next(self.parameters()).data
+        return (
+            torch.autograd.Variable(
+                weight.new(self.layers, batchsz, self.hidden_dim).zero_()
+            ),
+            torch.autograd.Variable(
+                weight.new(self.layers, batchsz, self.hidden_dim).zero_()
+            ),
+        )
