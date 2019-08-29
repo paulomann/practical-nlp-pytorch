@@ -6,5 +6,5 @@ This repository contains many functions and classes implemented in [this amazing
 
 # Installation
 
-1. git clone <repo>
+1. Clone this repository
 2. In the repository root folder, run: `pip install -e .`
