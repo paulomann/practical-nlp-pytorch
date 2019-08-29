@@ -8,3 +8,11 @@ This repository contains many functions and classes implemented in [this amazing
 
 1. Clone this repository
 2. In the repository root folder, run: `pip install -e .`
+
+
+# Usage
+
+Then, all modules and functions can be imported as
+```
+from practicalnlp import *
+```
