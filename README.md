@@ -13,6 +13,6 @@ This repository contains many functions and classes implemented in [this amazing
 # Usage
 
 Then, all modules and functions can be imported as
-```
+```Python
 from practicalnlp import *
 ```
