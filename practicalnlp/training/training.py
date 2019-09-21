@@ -126,7 +126,7 @@ class SequenceCriterion(nn.Module):
 
         :returns: torch.FloatTensor, The loss.
         """
-        total_sz = targets.nelement()
+        total_sz = targets.nelement() #nelement = numel
         loss = self.crit(inputs.view(total_sz, -1), targets.view(total_sz))
         return loss
 
@@ -148,12 +148,16 @@ class LMTrainer:
             x = train_data[:, i * self.nctx : (i + 1) * self.nctx]
             y = train_data[:, i * self.nctx + 1 : (i + 1) * self.nctx + 1]
             # labels size = torch.Size([35, 20])
-            labels = y.to("cuda:0").transpose(0, 1).contiguous()
+            labels = y.to("cuda:0")
             # inputs size = torch.Size([20, 35])
             inputs = x.to("cuda:0")
             logits, (h, c) = model(inputs, hidden)
+            # Logits size: torch.Size([20, 35, 33279])
+            # H size: torch.Size([2, 20, 512])
+            # C size: torch.Size([2, 20, 512])
             hidden = (h.detach(), c.detach())
-            logits = logits.transpose(0, 1).contiguous()
+            # LOGITS SHAPE: torch.Size([20, 35, 33279])
+            # LABELS SHAPE: torch.Size([20, 35])
             loss = loss_function(logits, labels)
             loss.backward()
 

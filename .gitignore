@@ -2,3 +2,5 @@
 .vscode
 GoogleNews-vectors-negative300.bin
 *.pyc
+data
+notebooks/core

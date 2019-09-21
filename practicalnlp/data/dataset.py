@@ -209,6 +209,7 @@ class WordDatasetReader(object):
         trunc = batch_size * rest
 
         x_tensor = x_tensor.narrow(0, 0, trunc)
+        #torch.Size([20, 104431]) for nctx = 35 and batch_size = 20
         x_tensor = x_tensor.view(batch_size, -1).contiguous()
         return x_tensor
 
