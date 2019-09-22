@@ -151,6 +151,7 @@ class LSTMLanguageModel(nn.Module):
         self.proj.weight = self.embed.weight
 
     def forward(self, x, hidden):
+        # emb size = torch.Size([20, 35, 512])
         emb = self.embed(x)
         decoded, hidden = self.rnn(emb, hidden)
         #decoded size = torch.Size([20, 35, 512])

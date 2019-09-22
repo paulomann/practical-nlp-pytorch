@@ -142,22 +142,15 @@ class LMTrainer:
         self.optimizer.zero_grad()
         start = time.time()
         model.train()
-        hidden = model.init_hidden(batch_size)
+        (h, c) = model.init_hidden(batch_size)
         num_steps = train_data.shape[1] // self.nctx
         for i in range(num_steps):
             x = train_data[:, i * self.nctx : (i + 1) * self.nctx]
             y = train_data[:, i * self.nctx + 1 : (i + 1) * self.nctx + 1]
-            # labels size = torch.Size([35, 20])
             labels = y.to("cuda:0")
-            # inputs size = torch.Size([20, 35])
             inputs = x.to("cuda:0")
-            logits, (h, c) = model(inputs, hidden)
-            # Logits size: torch.Size([20, 35, 33279])
-            # H size: torch.Size([2, 20, 512])
-            # C size: torch.Size([2, 20, 512])
             hidden = (h.detach(), c.detach())
-            # LOGITS SHAPE: torch.Size([20, 35, 33279])
-            # LABELS SHAPE: torch.Size([20, 35])
+            logits, (h, c) = model(inputs, hidden)
             loss = loss_function(logits, labels)
             loss.backward()
 
