@@ -142,7 +142,8 @@ class LMTrainer:
         self.optimizer.zero_grad()
         start = time.time()
         model.train()
-        (h, c) = model.init_hidden(batch_size)
+        if hasattr(model, "init_hidden"):
+            (h, c) = model.init_hidden(batch_size)
         num_steps = train_data.shape[1] // self.nctx
         for i in range(num_steps):
             x = train_data[:, i * self.nctx : (i + 1) * self.nctx]
@@ -180,7 +181,8 @@ class LMEvaluator:
         avg_valid_loss = Average("average_valid_loss")
         start = time.time()
         model.eval()
-        hidden = model.init_hidden(batch_size)
+        if hasattr(model, "init_hidden"):
+            hidden = model.init_hidden(batch_size)
         metrics = {}
         num_steps = valid_data.shape[1] // self.nctx
         for i in range(num_steps):
@@ -188,11 +190,9 @@ class LMEvaluator:
             with torch.no_grad():
                 x = valid_data[:, i * self.nctx : (i + 1) * self.nctx]
                 y = valid_data[:, i * self.nctx + 1 : (i + 1) * self.nctx + 1]
-                labels = y.to("cuda:0").transpose(0, 1).contiguous()
+                labels = y.to("cuda:0")
                 inputs = x.to("cuda:0")
-
                 logits, hidden = model(inputs, hidden)
-                logits = logits.transpose(0, 1).contiguous()
                 loss = loss_function(logits, labels)
                 avg_valid_loss.update(loss.item())
 

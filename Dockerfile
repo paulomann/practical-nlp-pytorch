@@ -9,7 +9,7 @@ RUN rm conda.sh
 ENV PATH="/workspace/anaconda3/bin:$PATH"
 RUN /bin/bash -c "conda update --prefix /workspace/anaconda3 anaconda"
 RUN /bin/bash -c "conda init"
-RUN ["/bin/bash", "-c", "pip install torch torchvision"]
+RUN ["/bin/bash", "-c", "pip install torch==1.1 torchvision"]
 RUN ["/bin/bash", "-c", "pip install spacy"]
 RUN ["/bin/bash", "-c", "python -m spacy download pt_core_news_sm"]
 RUN ["/bin/bash", "-c", "python -m spacy download en_core_web_sm"]
