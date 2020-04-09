@@ -65,10 +65,11 @@ class Encoder(nn.Module):
         both using -0.1 and 0.1 for the min and max params.
         [1] https://github.com/pytorch/examples/blob/ad775ace1b9db09146cdd0724ce9195f7f863fff/word_language_model/model.py#L42
         [2] https://github.com/pytorch/fairseq/blob/e75cff5f2c1d62f12dc911e0bf420025eb1a4e33/fairseq/models/lstm.py#L478 """
-        nn.init.uniform_(self.rnn.weight_hh_l0, -0.1, 0.1)
-        nn.init.uniform_(self.rnn.weight_ih_l0, -0.1, 0.1)
-        self.rnn.bias_ih_l0.data.zero_()
-        self.rnn.bias_hh_l0.data.zero_()
+        for name, param in self.rnn.named_parameters():
+            if "weight" in name:
+                nn.init.uniform_(param.data, -0.1, 0.1)
+            if "bias" in name:
+                nn.init.zeros_(param.data)
 
     def init_hidden(self, bsz):
         """ Same init_hidden code from [1]
