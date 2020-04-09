@@ -1,1 +1,1 @@
-from .dataset import Reader, EmbeddingsReader, WordDatasetReader, Average
+from .dataset import Reader, EmbeddingsReader, WordDatasetReader, Average, TSPDataset

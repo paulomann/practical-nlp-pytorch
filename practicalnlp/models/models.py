@@ -464,7 +464,7 @@ class Generator(nn.Module):
         return F.log_softmax(self.proj(x), dim=-1)
 
 
-class TransformerLM(nn.Module):
+class OpenAIGPTLM(nn.Module):
     """
     This transformer LM is similar to GPT
     """
@@ -473,7 +473,6 @@ class TransformerLM(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.h = h
-        self.position = PositionalEncoding(d_model, pdrop)
         self.encoder_stack = TransformerEncoderStack(
             num_heads=h, d_model=d_model, pdrop=pdrop, layers=layers, d_ff=d_ff
         )
@@ -487,6 +486,6 @@ class TransformerLM(nn.Module):
 
     def forward(self, x, mask=None):
         x = self.embedding(x)
-        x = self.encoder_stack(x, mask)
-        x = self.generator(x)
-        return x
+        h = self.encoder_stack(x, mask)
+        lm_logits = self.generator(h)
+        return lm_logits
